@@ -1,0 +1,71 @@
+version: "3.9"
+
+networks:
+  carekaki:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: carekaki-postgres
+    environment:
+      POSTGRES_DB: carekaki
+      POSTGRES_USER: carekaki
+      POSTGRES_PASSWORD: carekaki
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - carekaki
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U carekaki -d carekaki"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --- Phase 1+ services (uncomment when built) ---
+  # web:
+  #   build: ../../apps/web
+  #   ports: ["3000:3000"]
+  #   networks: [carekaki]
+  #   depends_on: [postgres]
+  #   env_file: ../../.env
+
+  # api-gateway:
+  #   build: ../../services/api-gateway
+  #   ports: ["3001:3001"]
+  #   networks: [carekaki]
+  #   env_file: ../../.env
+
+  # agent-service:
+  #   build: ../../services/agent-service
+  #   ports: ["3002:3002"]
+  #   networks: [carekaki]
+  #   depends_on: [postgres]
+  #   env_file: ../../.env
+
+  # profile-service:
+  #   build: ../../services/profile-service
+  #   ports: ["3003:3003"]
+  #   networks: [carekaki]
+  #   depends_on: [postgres]
+  #   env_file: ../../.env
+
+  # knowledge-service:
+  #   build: ../../services/knowledge-service
+  #   ports: ["3004:3004"]
+  #   networks: [carekaki]
+  #   env_file: ../../.env
+
+  # handover-service:
+  #   build: ../../services/handover-service
+  #   ports: ["3005:3005"]
+  #   networks: [carekaki]
+  #   depends_on: [postgres]
+  #   env_file: ../../.env
