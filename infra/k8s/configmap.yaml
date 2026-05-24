@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: carekaki-config
+  namespace: carekaki
+data:
+  NODE_ENV: "production"
+  PROFILE_SERVICE_URL: "http://profile-service:3003"
+  AGENT_SERVICE_URL: "http://agent-service:3002"
+  KNOWLEDGE_SERVICE_URL: "http://knowledge-service:3004"
+  NEXT_PUBLIC_APP_URL: "http://carekaki.local"
+  SERVICES_DATA_PATH: "/app/data/seed/services.json"
+  CLAUDE_MODEL: "claude-opus-4-7"
+  MOCK_MODE: "false"

@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: profile-service
+  namespace: carekaki
+  labels:
+    app: profile-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: profile-service
+  template:
+    metadata:
+      labels:
+        app: profile-service
+    spec:
+      containers:
+        - name: profile-service
+          image: carekaki/profile-service:latest
+          ports:
+            - containerPort: 3003
+          envFrom:
+            - configMapRef:
+                name: carekaki-config
+          env:
+            - name: PORT
+              value: "3003"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: profile-service
+  namespace: carekaki
+spec:
+  selector:
+    app: profile-service
+  ports:
+    - port: 3003
+      targetPort: 3003
+  type: ClusterIP

@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: knowledge-service
+  namespace: carekaki
+  labels:
+    app: knowledge-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: knowledge-service
+  template:
+    metadata:
+      labels:
+        app: knowledge-service
+    spec:
+      containers:
+        - name: knowledge-service
+          image: carekaki/knowledge-service:latest
+          ports:
+            - containerPort: 3004
+          envFrom:
+            - configMapRef:
+                name: carekaki-config
+          env:
+            - name: PORT
+              value: "3004"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: knowledge-service
+  namespace: carekaki
+spec:
+  selector:
+    app: knowledge-service
+  ports:
+    - port: 3004
+      targetPort: 3004
+  type: ClusterIP
