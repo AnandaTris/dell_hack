@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { store } from "./store.js";
+import { briefStore, type StoredBrief } from "./brief-store.js";
 
 const app = new Hono();
 
@@ -64,6 +65,39 @@ app.delete("/profiles/:id", (c) => {
 // List (coordinator view)
 app.get("/profiles", (c) => {
   return c.json(store.list());
+});
+
+// === Care brief endpoints (for warm handover) ===
+
+app.post("/care-briefs", async (c) => {
+  const body = await c.req.json<Omit<StoredBrief, "id">>();
+  const brief = briefStore.create(body);
+  return c.json(brief, 201);
+});
+
+app.get("/care-briefs", (c) => {
+  return c.json(briefStore.list());
+});
+
+app.get("/care-briefs/:id", (c) => {
+  const { id } = c.req.param();
+  const brief = briefStore.getById(id);
+  if (!brief) return c.json({ error: "not found" }, 404);
+  return c.json(brief);
+});
+
+app.patch("/care-briefs/:id", async (c) => {
+  const { id } = c.req.param();
+  const body = await c.req.json<Partial<StoredBrief>>();
+  const updated = briefStore.update(id, body);
+  if (!updated) return c.json({ error: "not found" }, 404);
+  return c.json(updated);
+});
+
+app.delete("/care-briefs/:id", (c) => {
+  const { id } = c.req.param();
+  const deleted = briefStore.delete(id);
+  return deleted ? c.json({ ok: true }) : c.json({ error: "not found" }, 404);
 });
 
 const PORT = Number(process.env.PORT ?? 3003);

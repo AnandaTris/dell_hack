@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   CheckCircle2,
@@ -9,14 +10,46 @@ import {
   User,
   AlertTriangle,
   DollarSign,
+  Loader2,
 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
+import type { CareBrief } from "@/lib/types";
 
 export function HandoverPanel() {
   const { state, dispatch } = useApp();
   const lang = state.language;
   const brief = state.careBrief;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleConfirm() {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("/api/handover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile: state.profile,
+          pathway: state.pathway,
+          sessionId: state.sessionId,
+        }),
+      });
+
+      if (res.ok) {
+        const careBrief = (await res.json()) as CareBrief;
+        dispatch({ type: "SET_CARE_BRIEF", brief: careBrief });
+      } else {
+        // Fallback to mock brief if API fails
+        dispatch({ type: "CONFIRM_HANDOVER" });
+      }
+    } catch {
+      dispatch({ type: "CONFIRM_HANDOVER" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   if (state.stage === "escalation") {
     return (
@@ -28,19 +61,28 @@ export function HandoverPanel() {
           Connect with a coordinator
         </h2>
         <p className="text-sm text-stone-500 leading-relaxed mb-6">
-          A Care Corner care coordinator will receive Mdm Tan&apos;s full Care
-          Brief and reach out to schedule a call. You won&apos;t need to repeat
+          A Care Corner care coordinator will receive a full Care Brief and call
+          your family within 1 working day. You won&apos;t need to repeat
           anything.
         </p>
         <button
-          onClick={() => dispatch({ type: "CONFIRM_HANDOVER" })}
-          className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 text-sm"
+          onClick={handleConfirm}
+          disabled={isSubmitting}
+          className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white font-semibold py-3 px-4 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 text-sm flex items-center justify-center gap-2"
         >
-          Yes, send my Care Brief to a coordinator
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Preparing Care Brief…
+            </>
+          ) : (
+            "Yes, send my Care Brief to a coordinator"
+          )}
         </button>
         <button
           onClick={() => dispatch({ type: "SET_STAGE", stage: "pathway" })}
-          className="mt-3 text-sm text-stone-400 hover:text-stone-600 transition-colors"
+          disabled={isSubmitting}
+          className="mt-3 text-sm text-stone-400 hover:text-stone-600 transition-colors disabled:opacity-50"
         >
           Go back to pathway
         </button>
@@ -93,9 +135,12 @@ export function HandoverPanel() {
 
         {/* Senior details */}
         <Section icon={<User className="w-4 h-4" />} title="Senior">
-          <p className="text-sm text-stone-700 font-medium">
-            {brief.seniorDetails.name}, {brief.seniorDetails.age}
-          </p>
+          {brief.seniorDetails.name && (
+            <p className="text-sm text-stone-700 font-medium">
+              {brief.seniorDetails.name}
+              {brief.seniorDetails.age ? `, ${brief.seniorDetails.age}` : ""}
+            </p>
+          )}
           <p className="text-sm text-stone-500">{brief.seniorDetails.situation}</p>
         </Section>
 
@@ -106,7 +151,10 @@ export function HandoverPanel() {
         >
           <ul className="flex flex-col gap-1">
             {brief.keyNeeds.map((need) => (
-              <li key={need} className="flex items-start gap-2 text-sm text-stone-600">
+              <li
+                key={need}
+                className="flex items-start gap-2 text-sm text-stone-600"
+              >
                 <span className="w-1.5 h-1.5 bg-primary-500 rounded-full mt-1.5 flex-shrink-0" />
                 {need}
               </li>
@@ -120,7 +168,9 @@ export function HandoverPanel() {
             icon={<DollarSign className="w-4 h-4" />}
             title={t(lang, "financialNote")}
           >
-            <p className="text-sm text-stone-600">{brief.financialConsiderations}</p>
+            <p className="text-sm text-stone-600">
+              {brief.financialConsiderations}
+            </p>
           </Section>
         )}
 

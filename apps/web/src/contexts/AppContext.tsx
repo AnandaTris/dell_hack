@@ -50,6 +50,7 @@ type AppAction =
   | { type: "SET_STAGE"; stage: AppStage }
   | { type: "REQUEST_HANDOVER" }
   | { type: "CONFIRM_HANDOVER" }
+  | { type: "SET_CARE_BRIEF"; brief: CareBrief }
   | { type: "TOGGLE_LARGE_TEXT" }
   | { type: "TOGGLE_HIGH_CONTRAST" }
   | { type: "INCREMENT_TURN" };
@@ -133,6 +134,14 @@ function reducer(state: AppState, action: AppAction): AppState {
         stage: "handover",
         showHandover: true,
         careBrief: MOCK_CARE_BRIEF,
+      };
+
+    case "SET_CARE_BRIEF":
+      return {
+        ...state,
+        stage: "handover",
+        showHandover: true,
+        careBrief: action.brief,
       };
 
     case "TOGGLE_LARGE_TEXT":

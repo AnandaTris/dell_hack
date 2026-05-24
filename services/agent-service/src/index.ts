@@ -4,8 +4,9 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { runProfilerAgent } from "./agents/profiler.js";
 import { runNavigatorAgent } from "./agents/navigator.js";
+import { runHandoverAgent } from "./agents/handover.js";
 import { getMockResponse, resetMockTurn } from "./lib/mock.js";
-import type { IntakeRequest, NavigateRequest } from "./types.js";
+import type { IntakeRequest, NavigateRequest, HandoverRequest } from "./types.js";
 
 const app = new Hono();
 
@@ -115,6 +116,26 @@ app.post("/navigate", async (c) => {
     profileId: sessionId,
     generatedAt: new Date().toISOString(),
   });
+});
+
+app.post("/handover", async (c) => {
+  let body: HandoverRequest;
+  try {
+    body = await c.req.json<HandoverRequest>();
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
+
+  const { profile, pathway, sessionId } = body;
+
+  console.log(`[agent-service] Handover agent: session=${sessionId}`);
+
+  const brief = await runHandoverAgent({
+    profile,
+    pathway: pathway as { groups: Parameters<typeof runHandoverAgent>[0]["pathway"]["groups"] },
+  });
+
+  return c.json({ ...brief, generatedAt: new Date().toISOString() });
 });
 
 // Reset mock turn counter (useful for demo resets)

@@ -70,6 +70,12 @@ export interface NavigateRequest {
   sessionId: string;
 }
 
+export interface HandoverRequest {
+  profile: Partial<CareProfile>;
+  pathway: { groups: unknown[] };
+  sessionId: string;
+}
+
 export interface IntakeResponse {
   response: string;
   profileUpdate: Partial<CareProfile>;

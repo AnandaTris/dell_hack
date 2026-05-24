@@ -90,7 +90,7 @@ export interface Pathway {
 export interface CareBrief {
   id: string;
   profileId: string;
-  pathwayId: string;
+  pathwayId?: string | undefined;
   summary: string;
   seniorDetails: {
     name?: string;
