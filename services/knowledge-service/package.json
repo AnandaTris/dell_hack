@@ -1,0 +1,21 @@
+{
+  "name": "@carekaki/knowledge-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "hono": "^4.6.20"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.5"
+  }
+}

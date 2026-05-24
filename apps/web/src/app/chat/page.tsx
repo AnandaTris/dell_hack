@@ -23,6 +23,20 @@ import { HandoverPanel } from "@/components/handover/HandoverPanel";
 import type { CareProfile, Pathway } from "@/lib/types";
 import { MOCK_TURNS } from "@/lib/mock-data";
 
+function computeCompleteness(profile: Partial<CareProfile>): number {
+  let score = 0;
+  if (profile.mode) score += 5;
+  if (profile.senior?.name) score += 10;
+  if (profile.senior?.age) score += 10;
+  if (profile.senior?.livingArrangement) score += 10;
+  if (profile.careNeeds?.recentHospitalDischarge !== undefined) score += 10;
+  if (profile.careNeeds?.mobility) score += 10;
+  if (profile.careNeeds?.chronicConditions?.length) score += 10;
+  if (profile.caregiverContext) score += 10;
+  if (profile.financial) score += 15;
+  return Math.min(100, score);
+}
+
 export default function ChatPage() {
   const { state, dispatch, addUserMessage, addAssistantMessage } = useApp();
   const router = useRouter();
@@ -76,9 +90,31 @@ export default function ChatPage() {
         await new Promise((r) => setTimeout(r, 400));
         addAssistantMessage(data.response, data.profileUpdate);
 
+        // Use pathway from chat response (mock mode) OR trigger navigator when profile is complete
         if (data.pathway) {
           await new Promise((r) => setTimeout(r, 600));
           dispatch({ type: "SET_PATHWAY", pathway: data.pathway });
+        } else if (!state.pathway) {
+          // Compute completeness on merged profile
+          const mergedProfile = { ...state.profile, ...data.profileUpdate };
+          const completeness = computeCompleteness(mergedProfile);
+          if (completeness >= 75) {
+            // Trigger Navigator agent to generate real personalised pathway
+            try {
+              const navRes = await fetch("/api/navigate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ profile: mergedProfile, sessionId: state.sessionId }),
+              });
+              if (navRes.ok) {
+                const pathway = (await navRes.json()) as Pathway;
+                await new Promise((r) => setTimeout(r, 400));
+                dispatch({ type: "SET_PATHWAY", pathway });
+              }
+            } catch {
+              // Non-critical — pathway will remain null and user can still chat
+            }
+          }
         }
       } catch {
         addAssistantMessage(

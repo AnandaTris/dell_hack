@@ -65,6 +65,11 @@ export interface IntakeRequest {
   sessionId: string;
 }
 
+export interface NavigateRequest {
+  profile: Partial<CareProfile>;
+  sessionId: string;
+}
+
 export interface IntakeResponse {
   response: string;
   profileUpdate: Partial<CareProfile>;

@@ -3,8 +3,9 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { runProfilerAgent } from "./agents/profiler.js";
+import { runNavigatorAgent } from "./agents/navigator.js";
 import { getMockResponse, resetMockTurn } from "./lib/mock.js";
-import type { IntakeRequest } from "./types.js";
+import type { IntakeRequest, NavigateRequest } from "./types.js";
 
 const app = new Hono();
 
@@ -54,6 +55,66 @@ app.post("/intake", async (c) => {
     const fallback = getMockResponse(profile);
     return c.json({ ...fallback, _fallback: true });
   }
+});
+
+app.post("/navigate", async (c) => {
+  let body: NavigateRequest;
+  try {
+    body = await c.req.json<NavigateRequest>();
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
+
+  const { profile, sessionId } = body;
+
+  // Fetch relevant services from knowledge-service
+  const knowledgeUrl = process.env.KNOWLEDGE_SERVICE_URL ?? "http://localhost:3004";
+
+  let services: unknown[] = [];
+  try {
+    const searchPayload = {
+      recentHospitalDischarge: profile.careNeeds?.recentHospitalDischarge,
+      primaryDiagnosis: profile.careNeeds?.primaryDiagnosis,
+      mobility: profile.careNeeds?.mobility,
+      chronicConditions: profile.careNeeds?.chronicConditions,
+      adlSupport: profile.careNeeds?.adlSupport,
+      livingArrangement: profile.senior?.livingArrangement,
+      hasCaregiver: profile.caregiverContext?.hasCaregiver,
+      caregiverStressLevel: profile.caregiverContext?.caregiverStressLevel,
+      citizenshipStatus: profile.financial?.citizenshipStatus,
+      estimatedIncome: profile.financial?.estimatedIncome,
+      pioneerGeneration: profile.financial?.pioneerGeneration,
+      urgency: profile.transitionFlags?.urgency,
+    };
+
+    const res = await fetch(`${knowledgeUrl}/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(searchPayload),
+      signal: AbortSignal.timeout(5_000),
+    });
+
+    if (res.ok) {
+      const data = await res.json() as { results: unknown[] };
+      services = data.results ?? [];
+    }
+  } catch (err) {
+    console.warn("[agent-service] knowledge-service unavailable:", err);
+    // Continue with empty services — navigator will use mock fallback
+  }
+
+  console.log(
+    `[agent-service] Navigator: session=${sessionId}, services retrieved=${services.length}`
+  );
+
+  const pathway = await runNavigatorAgent({ profile, services: services as Parameters<typeof runNavigatorAgent>[0]["services"] });
+
+  return c.json({
+    ...pathway,
+    id: `pathway-${sessionId}-${Date.now()}`,
+    profileId: sessionId,
+    generatedAt: new Date().toISOString(),
+  });
 });
 
 // Reset mock turn counter (useful for demo resets)

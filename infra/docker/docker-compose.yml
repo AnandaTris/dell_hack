@@ -48,6 +48,25 @@ services:
       retries: 3
     restart: unless-stopped
 
+  knowledge-service:
+    build:
+      context: ../..
+      dockerfile: services/knowledge-service/Dockerfile
+    container_name: carekaki-knowledge-service
+    ports:
+      - "3004:3004"
+    networks:
+      - carekaki
+    environment:
+      PORT: "3004"
+      NODE_ENV: production
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
   agent-service:
     build:
       context: ../../services/agent-service
@@ -64,8 +83,11 @@ services:
       MOCK_MODE: ${MOCK_MODE:-false}
       CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-opus-4-7}
       PROFILE_SERVICE_URL: http://profile-service:3003
+      KNOWLEDGE_SERVICE_URL: http://knowledge-service:3004
     depends_on:
       profile-service:
+        condition: service_healthy
+      knowledge-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
