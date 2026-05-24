@@ -1,24 +1,24 @@
 FROM node:22-alpine AS base
-WORKDIR /app
-RUN npm install -g tsx
+WORKDIR /workspace
 
-# Install dependencies
 FROM base AS deps
-COPY package.json ./
+COPY services/agent-service/package.json ./services/agent-service/package.json
+WORKDIR /workspace/services/agent-service
 RUN npm install --production=false
 
-# Build
 FROM deps AS build
-COPY tsconfig.json ./
-COPY src/ ./src/
+WORKDIR /workspace
+COPY tsconfig.base.json ./tsconfig.base.json
+COPY services/agent-service/tsconfig.json ./services/agent-service/tsconfig.json
+COPY services/agent-service/src/ ./services/agent-service/src/
+WORKDIR /workspace/services/agent-service
 RUN npm run build
 
-# Runtime
 FROM node:22-alpine AS runtime
 WORKDIR /app
-COPY --from=build /app/dist ./dist
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json ./
+COPY --from=build /workspace/services/agent-service/dist ./dist
+COPY --from=deps /workspace/services/agent-service/node_modules ./node_modules
+COPY services/agent-service/package.json ./
 
 EXPOSE 3002
 HEALTHCHECK --interval=15s --timeout=5s --retries=3 \

@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Heart,
   PhoneCall,
   ZoomIn,
   ZoomOut,
@@ -172,7 +171,7 @@ export default function ChatPage() {
   if (!state.mode) return null;
 
   return (
-    <div className="flex flex-col h-screen bg-stone-50">
+    <div className="flex flex-col h-screen" style={{ backgroundColor: "#f7f4ef" }}>
       {/* Header */}
       <header className="bg-white border-b border-stone-200 px-4 py-3 flex items-center justify-between flex-shrink-0 z-10">
         <div className="flex items-center gap-3">
@@ -184,12 +183,17 @@ export default function ChatPage() {
             <ArrowLeft className="w-4 h-4 text-stone-600" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-primary-600 rounded-lg flex items-center justify-center">
-              <Heart className="w-3.5 h-3.5 text-white" />
+            <div className="w-7 h-7 rounded-lg overflow-hidden flex-shrink-0">
+              <svg viewBox="0 0 28 28" fill="none" className="w-full h-full">
+                <rect width="28" height="28" rx="8" fill="#4a7c50" />
+                <path d="M5 21C5 21 7 11 16 8C19 7 22.5 7.5 22.5 7.5C22.5 7.5 20.5 17.5 11.5 20C8.5 20.8 5 21 5 21Z" fill="white" opacity="0.9"/>
+                <path d="M5 21L11 15" stroke="#4a7c50" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
             </div>
-            <span className="font-semibold text-stone-900 text-sm">
-              CareKaki
-            </span>
+            <div>
+              <span className="font-bold text-stone-900 text-sm leading-none block">CareKaki</span>
+              <span className="text-xs text-stone-400 leading-none">ICCP Navigator</span>
+            </div>
           </div>
         </div>
 
@@ -258,7 +262,7 @@ export default function ChatPage() {
         {/* Chat area */}
         <div className="flex flex-col flex-1 min-w-0">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 chat-scroll">
+          <div className="flex-1 overflow-y-auto px-4 py-4 chat-scroll" style={{ backgroundColor: "#f7f4ef" }}>
             {state.messages.map((msg) => (
               <MessageBubble key={msg.id} message={msg} />
             ))}

@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --primary: #0d9488;
-  --primary-light: #f0fdfa;
-  --accent: #fbbf24;
-  --background: #fafaf9;
-  --foreground: #1c1917;
-  --muted: #78716c;
-  --border: #e7e5e4;
+  --primary: #4a7c50;
+  --primary-light: #f0f7f1;
+  --accent: #e8a042;
+  --background: #f7f4ef;
+  --foreground: #1a1a18;
+  --muted: #6b6b60;
+  --border: #e2ddd4;
   --card: #ffffff;
   --urgent: #dc2626;
   --urgent-light: #fef2f2;
@@ -29,7 +29,7 @@
 
 /* High contrast accessibility mode */
 .high-contrast {
-  --primary: #005f5f;
+  --primary: #2c5e30;
   --background: #ffffff;
   --foreground: #000000;
   --muted: #3d3d3d;
@@ -79,10 +79,17 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d6d3d1;
+  background: #c8c4bb;
   border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a29e;
+  background: #a8a49b;
+}
+
+/* Leaf decoration for landing */
+.leaf-bg {
+  background-image:
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(74, 124, 80, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 10% 90%, rgba(74, 124, 80, 0.05) 0%, transparent 60%);
 }

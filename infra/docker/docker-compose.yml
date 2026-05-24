@@ -16,7 +16,7 @@ services:
       POSTGRES_USER: carekaki
       POSTGRES_PASSWORD: carekaki
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -31,8 +31,8 @@ services:
 
   profile-service:
     build:
-      context: ../../services/profile-service
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: services/profile-service/Dockerfile
     container_name: carekaki-profile-service
     ports:
       - "3003:3003"
@@ -69,8 +69,8 @@ services:
 
   agent-service:
     build:
-      context: ../../services/agent-service
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: services/agent-service/Dockerfile
     container_name: carekaki-agent-service
     ports:
       - "3002:3002"

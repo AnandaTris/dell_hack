@@ -1,27 +1,325 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  User,
-  Heart,
-  Users,
-  DollarSign,
-  AlertTriangle,
-  CheckCircle2,
-  MapPin,
-} from "lucide-react";
+import { CheckCircle2, User, Heart, ClipboardList, MapPin, Phone } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { CareProfile } from "@/lib/types";
 
-const URGENCY_COLORS = {
-  routine: "text-stone-500 bg-stone-100",
-  urgent: "text-amber-700 bg-amber-50",
-  critical: "text-red-700 bg-red-50",
-};
+const STEPS = [
+  {
+    id: "understand",
+    label: "Getting to Know You",
+    desc: "Building your care profile",
+    icon: User,
+  },
+  {
+    id: "assess",
+    label: "Assessing Care Needs",
+    desc: "Understanding your situation",
+    icon: Heart,
+  },
+  {
+    id: "plan",
+    label: "Planning Your Care",
+    desc: "Matching to right services",
+    icon: ClipboardList,
+  },
+  {
+    id: "pathway",
+    label: "Care Pathway Ready",
+    desc: "Your personalised care plan",
+    icon: MapPin,
+  },
+  {
+    id: "connect",
+    label: "Connecting to Services",
+    desc: "Coordinating with care providers",
+    icon: Phone,
+  },
+];
 
-function Field({
+type StepStatus = "complete" | "active" | "pending";
+
+function getStepStatuses(
+  completeness: number,
+  appStage: string,
+  hasPathway: boolean,
+  hasCareBrief: boolean
+): StepStatus[] {
+  const s = (c: boolean, a: boolean): StepStatus =>
+    c ? "complete" : a ? "active" : "pending";
+
+  return [
+    s(completeness > 20, completeness <= 20),
+    s(completeness >= 55, completeness > 20 && completeness < 55),
+    s(hasPathway, completeness >= 55 && !hasPathway),
+    s(
+      appStage === "escalation" || appStage === "handover",
+      appStage === "pathway"
+    ),
+    s(
+      appStage === "handover" && hasCareBrief,
+      appStage === "escalation" || (appStage === "handover" && !hasCareBrief)
+    ),
+  ];
+}
+
+function StepBadge({ status }: { status: StepStatus }) {
+  if (status === "complete")
+    return (
+      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary-100 text-primary-700">
+        Completed
+      </span>
+    );
+  if (status === "active")
+    return (
+      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-accent-100 text-accent-500">
+        In Progress
+      </span>
+    );
+  return (
+    <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-400">
+      Pending
+    </span>
+  );
+}
+
+export function ProfilePanel({ onNavigate }: { onNavigate: () => void }) {
+  const { state, dispatch } = useApp();
+  const { profile, stage, pathway, careBrief, language: lang } = state;
+  const p = profile as Partial<CareProfile>;
+  const completeness = p.completeness ?? 0;
+  const statuses = getStepStatuses(completeness, stage, !!pathway, !!careBrief);
+  const isPathwayReady =
+    completeness >= 70 ||
+    stage === "pathway" ||
+    stage === "escalation" ||
+    stage === "handover";
+
+  const activeStep = statuses.findIndex((s) => s === "active");
+  const allComplete = statuses.every((s) => s === "complete");
+
+  return (
+    <div className="flex flex-col h-full overflow-y-auto" style={{ backgroundColor: "#f7f4ef" }}>
+      {/* Panel header */}
+      <div className="px-5 pt-5 pb-4 border-b border-stone-200 bg-white flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-bold text-stone-900 text-base">Care Journey</h2>
+            <p className="text-xs text-stone-500 mt-0.5">
+              {allComplete
+                ? "Your care plan is ready"
+                : activeStep >= 0
+                ? `Step ${activeStep + 1} of ${STEPS.length}`
+                : "Getting started"}
+            </p>
+          </div>
+          {allComplete && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <CheckCircle2 className="w-5 h-5 text-primary-600" />
+            </motion.div>
+          )}
+        </div>
+
+        {/* Progress bar */}
+        <div className="mt-3 w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-primary-500 rounded-full"
+            initial={{ width: "4%" }}
+            animate={{
+              width: `${Math.max(4, (statuses.filter((s) => s === "complete").length / STEPS.length) * 100)}%`,
+            }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          />
+        </div>
+      </div>
+
+      {/* Journey steps */}
+      <div className="px-5 py-5 flex-1">
+        <div className="relative">
+          {/* Vertical connecting line */}
+          <div className="absolute left-[19px] top-6 bottom-6 w-px bg-stone-200" />
+
+          <div className="flex flex-col gap-1">
+            {STEPS.map((step, i) => {
+              const status = statuses[i];
+              const isActive = status === "active";
+              const isComplete = status === "complete";
+              const Icon = step.icon;
+
+              return (
+                <motion.div
+                  key={step.id}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.06 }}
+                  className={cn(
+                    "relative flex items-start gap-3 p-3 rounded-xl transition-all",
+                    isActive
+                      ? "bg-white shadow-sm border border-primary-100"
+                      : "bg-transparent"
+                  )}
+                >
+                  {/* Step circle */}
+                  <div
+                    className={cn(
+                      "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center z-10 transition-all",
+                      isComplete
+                        ? "bg-primary-600 shadow-sm shadow-primary-200"
+                        : isActive
+                        ? "bg-primary-50 border-2 border-primary-400"
+                        : "bg-white border-2 border-stone-200"
+                    )}
+                  >
+                    {isComplete ? (
+                      <CheckCircle2 className="w-5 h-5 text-white" />
+                    ) : (
+                      <Icon
+                        className={cn(
+                          "w-4 h-4",
+                          isActive ? "text-primary-600" : "text-stone-300"
+                        )}
+                      />
+                    )}
+                  </div>
+
+                  {/* Step content */}
+                  <div className="flex-1 min-w-0 pt-1.5">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span
+                        className={cn(
+                          "text-sm font-semibold",
+                          isComplete
+                            ? "text-stone-700"
+                            : isActive
+                            ? "text-stone-900"
+                            : "text-stone-400"
+                        )}
+                      >
+                        {step.label}
+                      </span>
+                      <StepBadge status={status} />
+                    </div>
+                    <p
+                      className={cn(
+                        "text-xs mt-0.5",
+                        isActive ? "text-stone-500" : "text-stone-400"
+                      )}
+                    >
+                      {step.desc}
+                    </p>
+
+                    {/* Profile snippet for active step */}
+                    {isActive && i === 0 && p.senior?.name && (
+                      <div className="mt-2 text-xs bg-primary-50 text-primary-700 px-2.5 py-1.5 rounded-lg font-medium">
+                        {p.senior.name}
+                        {p.senior.age ? `, ${p.senior.age}y` : ""}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Profile summary cards — shown once data exists */}
+        <AnimatePresence>
+          {completeness >= 20 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="mt-6 space-y-2"
+            >
+              <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider px-1">
+                Profile Summary
+              </p>
+
+              {p.senior?.name && (
+                <SummaryRow label="Name" value={p.senior.name} />
+              )}
+              {p.senior?.age && (
+                <SummaryRow label="Age" value={`${p.senior.age} years old`} />
+              )}
+              {p.careNeeds?.mobility && (
+                <SummaryRow
+                  label="Mobility"
+                  value={
+                    p.careNeeds.mobility === "assisted"
+                      ? "Needs assistance"
+                      : p.careNeeds.mobility === "independent"
+                      ? "Independent"
+                      : p.careNeeds.mobility === "wheelchair"
+                      ? "Wheelchair"
+                      : "Bedbound"
+                  }
+                />
+              )}
+              {p.careNeeds?.recentHospitalDischarge && (
+                <SummaryRow label="Recent discharge" value="Yes" highlight />
+              )}
+              {p.financial?.estimatedIncome && (
+                <SummaryRow
+                  label="Subsidy tier"
+                  value={
+                    p.financial.estimatedIncome === "low"
+                      ? "Maximum subsidies"
+                      : p.financial.estimatedIncome === "medium"
+                      ? "Partial subsidies"
+                      : "Standard"
+                  }
+                />
+              )}
+              {p.careNeeds?.chronicConditions &&
+                p.careNeeds.chronicConditions.length > 0 && (
+                  <div className="bg-white rounded-xl border border-stone-100 px-3 py-2.5">
+                    <p className="text-xs text-stone-400 mb-1.5 font-medium">Conditions</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {p.careNeeds.chronicConditions.map((c) => (
+                        <span
+                          key={c}
+                          className="text-xs bg-stone-100 text-stone-600 px-2 py-0.5 rounded-full"
+                        >
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Navigate CTA */}
+      <AnimatePresence>
+        {isPathwayReady && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="px-5 pb-5 pt-2 flex-shrink-0"
+          >
+            <button
+              onClick={onNavigate}
+              className="w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold py-3 px-4 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 text-sm shadow-sm shadow-primary-200"
+            >
+              {t(lang, "navigateCare")} →
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function SummaryRow({
   label,
   value,
   highlight,
@@ -32,323 +330,24 @@ function Field({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
       className={cn(
-        "flex flex-col gap-0.5",
-        highlight && "bg-amber-50 -mx-2 px-2 py-1 rounded-md"
+        "flex items-center justify-between px-3 py-2.5 rounded-xl border",
+        highlight
+          ? "bg-accent-50 border-accent-100"
+          : "bg-white border-stone-100"
       )}
     >
-      <span className="text-xs text-stone-400 uppercase tracking-wide font-medium">
-        {label}
+      <span className="text-xs text-stone-400 font-medium">{label}</span>
+      <span
+        className={cn(
+          "text-xs font-semibold",
+          highlight ? "text-accent-500" : "text-stone-700"
+        )}
+      >
+        {value}
       </span>
-      <span className="text-sm font-medium text-stone-800">{value}</span>
     </motion.div>
-  );
-}
-
-function Section({
-  icon,
-  title,
-  children,
-  show,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-  show: boolean;
-}) {
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-          animate={{ opacity: 1, height: "auto", marginBottom: 16 }}
-          exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-          transition={{ duration: 0.3 }}
-          className="overflow-hidden"
-        >
-          <div className="border border-stone-100 rounded-xl p-3 bg-white shadow-sm">
-            <div className="flex items-center gap-2 mb-2.5">
-              <span className="text-primary-600">{icon}</span>
-              <span className="text-xs font-semibold text-stone-700 uppercase tracking-wide">
-                {title}
-              </span>
-            </div>
-            <div className="flex flex-col gap-2">{children}</div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}
-
-export function ProfilePanel({
-  onNavigate,
-}: {
-  onNavigate: () => void;
-}) {
-  const { state, dispatch } = useApp();
-  const { profile, stage } = state;
-  const lang = state.language;
-  const p = profile as Partial<CareProfile>;
-
-  const completeness = p.completeness ?? 0;
-  const hasSenior = !!(p.senior?.name || p.senior?.age);
-  const hasCareNeeds = !!(
-    p.careNeeds?.mobility || p.careNeeds?.recentHospitalDischarge !== undefined
-  );
-  const hasCaregiver = !!p.caregiverContext;
-  const hasFinancial = !!p.financial;
-  const hasTransition = !!p.transitionFlags?.careTransitionNeeded;
-  const isPathwayReady = completeness >= 70 || stage === "pathway" || stage === "escalation" || stage === "handover";
-
-  return (
-    <div className="flex flex-col h-full bg-stone-50 p-4 overflow-y-auto">
-      {/* Header */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">
-            {t(lang, "profileTitle")}
-          </span>
-          {completeness >= 90 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-1 text-xs text-primary-600 font-medium"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              {t(lang, "profileComplete")}
-            </motion.div>
-          )}
-        </div>
-
-        {/* Completeness bar */}
-        <div className="w-full h-2 bg-stone-200 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-primary-500 rounded-full"
-            initial={{ width: "10%" }}
-            animate={{ width: `${completeness}%` }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          />
-        </div>
-        <div className="flex justify-between text-xs text-stone-400 mt-1">
-          <span>
-            {completeness < 40
-              ? t(lang, "profileBuilding")
-              : completeness < 80
-              ? "Getting there..."
-              : t(lang, "profileComplete")}
-          </span>
-          <span className="font-medium text-stone-600">{completeness}%</span>
-        </div>
-      </div>
-
-      {/* Empty state */}
-      {completeness < 20 && (
-        <div className="flex-1 flex flex-col items-center justify-center text-center py-8 opacity-50">
-          <div className="w-12 h-12 border-2 border-dashed border-stone-300 rounded-full flex items-center justify-center mb-3">
-            <User className="w-5 h-5 text-stone-400" />
-          </div>
-          <p className="text-sm text-stone-400">{t(lang, "profileBuilding")}</p>
-          <p className="text-xs text-stone-300 mt-1">
-            The profile fills in as we talk
-          </p>
-        </div>
-      )}
-
-      {/* About the person */}
-      <Section
-        icon={<User className="w-4 h-4" />}
-        title={t(lang, "aboutPerson")}
-        show={hasSenior}
-      >
-        {p.senior?.name && <Field label="Name" value={p.senior.name} />}
-        {p.senior?.age && (
-          <Field label="Age" value={`${p.senior.age} years old`} />
-        )}
-        {p.senior?.livingArrangement && (
-          <Field
-            label="Living situation"
-            value={
-              p.senior.livingArrangement === "alone"
-                ? "Lives alone"
-                : p.senior.livingArrangement === "with_family"
-                ? "With family"
-                : p.senior.livingArrangement === "with_caregiver"
-                ? "With caregiver"
-                : "Other"
-            }
-            highlight={p.senior.livingArrangement === "alone"}
-          />
-        )}
-        {p.senior?.primaryLanguage && (
-          <Field label="Language" value={p.senior.primaryLanguage} />
-        )}
-      </Section>
-
-      {/* Care needs */}
-      <Section
-        icon={<Heart className="w-4 h-4" />}
-        title={t(lang, "careNeeds")}
-        show={hasCareNeeds}
-      >
-        {p.careNeeds?.recentHospitalDischarge && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 text-amber-700 bg-amber-50 px-2 py-1.5 rounded-md text-sm font-medium"
-          >
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-            Recent hospital discharge
-          </motion.div>
-        )}
-        {p.careNeeds?.primaryDiagnosis && (
-          <Field label="Reason" value={p.careNeeds.primaryDiagnosis} />
-        )}
-        {p.careNeeds?.mobility && (
-          <Field
-            label="Mobility"
-            value={
-              p.careNeeds.mobility === "independent"
-                ? "Independent"
-                : p.careNeeds.mobility === "assisted"
-                ? "Needs assistance"
-                : p.careNeeds.mobility === "wheelchair"
-                ? "Wheelchair"
-                : "Bedbound"
-            }
-          />
-        )}
-        {p.careNeeds?.chronicConditions &&
-          p.careNeeds.chronicConditions.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {p.careNeeds.chronicConditions.map((c) => (
-                <span
-                  key={c}
-                  className="text-xs bg-stone-100 text-stone-600 px-2 py-0.5 rounded-full"
-                >
-                  {c}
-                </span>
-              ))}
-            </div>
-          )}
-      </Section>
-
-      {/* Caregiver */}
-      <Section
-        icon={<Users className="w-4 h-4" />}
-        title={t(lang, "caregiverContext")}
-        show={hasCaregiver}
-      >
-        {p.caregiverContext?.caregiverRelationship && (
-          <Field
-            label="Relationship"
-            value={p.caregiverContext.caregiverRelationship}
-          />
-        )}
-        {p.caregiverContext?.caregiverStressLevel && (
-          <Field
-            label="Caregiver stress"
-            value={
-              p.caregiverContext.caregiverStressLevel === "high"
-                ? "High — may need respite support"
-                : p.caregiverContext.caregiverStressLevel === "medium"
-                ? "Moderate"
-                : "Low"
-            }
-            highlight={p.caregiverContext.caregiverStressLevel === "high"}
-          />
-        )}
-      </Section>
-
-      {/* Financial */}
-      <Section
-        icon={<DollarSign className="w-4 h-4" />}
-        title={t(lang, "financialInfo")}
-        show={hasFinancial}
-      >
-        {p.financial?.citizenshipStatus && (
-          <Field
-            label="Status"
-            value={
-              p.financial.citizenshipStatus === "citizen"
-                ? "Singapore Citizen"
-                : p.financial.citizenshipStatus === "pr"
-                ? "Permanent Resident"
-                : "Foreigner"
-            }
-          />
-        )}
-        {p.financial?.estimatedIncome && (
-          <Field
-            label="Income tier"
-            value={
-              p.financial.estimatedIncome === "low"
-                ? "Low (maximum subsidies eligible)"
-                : p.financial.estimatedIncome === "medium"
-                ? "Medium (partial subsidies)"
-                : "Higher income"
-            }
-            highlight={p.financial.estimatedIncome === "low"}
-          />
-        )}
-        {p.financial?.pioneerGeneration && (
-          <span className="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
-            Pioneer Generation
-          </span>
-        )}
-      </Section>
-
-      {/* Transition status */}
-      <Section
-        icon={<AlertTriangle className="w-4 h-4" />}
-        title={t(lang, "transitionStatus")}
-        show={hasTransition}
-      >
-        {p.transitionFlags?.urgency && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={cn(
-              "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-semibold",
-              URGENCY_COLORS[p.transitionFlags.urgency]
-            )}
-          >
-            <MapPin className="w-4 h-4 flex-shrink-0" />
-            {p.transitionFlags.urgency === "urgent"
-              ? "Care transition — urgent"
-              : p.transitionFlags.urgency === "critical"
-              ? "Critical — immediate action needed"
-              : "Routine"}
-          </motion.div>
-        )}
-        {p.transitionFlags?.careTransitionNeeded && (
-          <p className="text-xs text-stone-500">
-            Coordinated care plan recommended
-          </p>
-        )}
-      </Section>
-
-      {/* Navigate button */}
-      <AnimatePresence>
-        {isPathwayReady && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mt-auto pt-2"
-          >
-            <button
-              onClick={onNavigate}
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 text-sm"
-            >
-              {t(lang, "navigateCare")} →
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
   );
 }

@@ -1,9 +1,37 @@
 "use client";
 
-import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/lib/types";
 import { motion } from "framer-motion";
+
+function CareKakiAvatar({ size = 8 }: { size?: number }) {
+  const px = size * 4;
+  return (
+    <div
+      className="flex-shrink-0 rounded-full flex items-center justify-center shadow-sm"
+      style={{
+        width: px,
+        height: px,
+        backgroundColor: "#4a7c50",
+      }}
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 24 24" fill="none" style={{ width: px * 0.55, height: px * 0.55 }}>
+        <path
+          d="M4 19 C4 19 5.5 10 13.5 7 C16.5 5.8 20 6.5 20 6.5 C20 6.5 18.5 15 10.5 17.5 C7.5 18.5 4 19 4 19Z"
+          fill="white"
+          opacity="0.9"
+        />
+        <path
+          d="M4 19 L10 13"
+          stroke="#4a7c50"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
+}
 
 function parseMarkdown(text: string): string {
   return text
@@ -22,14 +50,8 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
       transition={{ duration: 0.2 }}
       className={cn("flex gap-2.5 mb-4", isUser ? "flex-row-reverse" : "")}
     >
-      {/* Avatar */}
-      {!isUser && (
-        <div className="flex-shrink-0 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center shadow-sm">
-          <Heart className="w-4 h-4 text-white" />
-        </div>
-      )}
+      {!isUser && <CareKakiAvatar size={8} />}
 
-      {/* Bubble */}
       <div
         className={cn(
           "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
@@ -60,15 +82,13 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
 export function TypingIndicator() {
   return (
     <div className="flex gap-2.5 mb-4">
-      <div className="flex-shrink-0 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center shadow-sm">
-        <Heart className="w-4 h-4 text-white" />
-      </div>
+      <CareKakiAvatar size={8} />
       <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-stone-100">
         <div className="flex gap-1.5 items-center h-4">
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
-              className="w-2 h-2 bg-stone-400 rounded-full"
+              className="w-2 h-2 bg-primary-300 rounded-full"
               animate={{ y: [0, -4, 0] }}
               transition={{
                 duration: 0.6,

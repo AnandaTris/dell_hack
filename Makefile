@@ -1,11 +1,16 @@
 .PHONY: up down dev dev-web dev-agent dev-profile dev-knowledge seed type-check k8s k8s-status k8s-down logs demo-reset
 
-COMPOSE=docker compose -f infra/docker/docker-compose.yml
+COMPOSE=docker compose -f infra/docker/docker-compose.yml --env-file .env.local
 
 # ── Docker compose ──────────────────────────────────────────────────────────
 
 up:
-	$(COMPOSE) up -d --build
+	@echo "Building images one at a time to keep memory usage low..."
+	$(COMPOSE) build profile-service
+	$(COMPOSE) build knowledge-service
+	$(COMPOSE) build agent-service
+	$(COMPOSE) build web
+	$(COMPOSE) up -d
 	@echo "✓ CareKaki is up."
 	@echo "  Web:               http://localhost:3000"
 	@echo "  Agent service:     http://localhost:3002"

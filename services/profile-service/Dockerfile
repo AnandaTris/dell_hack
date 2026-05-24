@@ -1,20 +1,24 @@
 FROM node:22-alpine AS base
-WORKDIR /app
+WORKDIR /workspace
 
 FROM base AS deps
-COPY package.json ./
+COPY services/profile-service/package.json ./services/profile-service/package.json
+WORKDIR /workspace/services/profile-service
 RUN npm install --production=false
 
 FROM deps AS build
-COPY tsconfig.json ./
-COPY src/ ./src/
+WORKDIR /workspace
+COPY tsconfig.base.json ./tsconfig.base.json
+COPY services/profile-service/tsconfig.json ./services/profile-service/tsconfig.json
+COPY services/profile-service/src/ ./services/profile-service/src/
+WORKDIR /workspace/services/profile-service
 RUN npm run build
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
-COPY --from=build /app/dist ./dist
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json ./
+COPY --from=build /workspace/services/profile-service/dist ./dist
+COPY --from=deps /workspace/services/profile-service/node_modules ./node_modules
+COPY services/profile-service/package.json ./
 
 EXPOSE 3003
 HEALTHCHECK --interval=15s --timeout=5s --retries=3 \

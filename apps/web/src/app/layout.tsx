@@ -1,10 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/contexts/AppContext";
 import { AccessibilityWrapper } from "@/components/AccessibilityWrapper";
 
-const inter = Inter({ subsets: ["latin"] });
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "CareKaki — Your care buddy that knows where to start",
@@ -21,7 +25,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0d9488",
+  themeColor: "#4a7c50",
 };
 
 export default function RootLayout({
@@ -31,7 +35,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-stone-50 text-stone-900`}>
+      <body
+        className={outfit.className}
+        style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}
+      >
         <AppProvider>
           <AccessibilityWrapper>{children}</AccessibilityWrapper>
         </AppProvider>

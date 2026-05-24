@@ -10,37 +10,38 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          50: "#f0fdfa",
-          100: "#ccfbf1",
-          200: "#99f6e4",
-          500: "#14b8a6",
-          600: "#0d9488",
-          700: "#0f766e",
-          800: "#115e59",
+          50: "#f0f7f1",
+          100: "#d8ead9",
+          200: "#aecfb0",
+          500: "#5d9464",
+          600: "#4a7c50",
+          700: "#3a6140",
+          800: "#2c4a31",
         },
         accent: {
-          50: "#fffbeb",
-          400: "#fbbf24",
-          500: "#f59e0b",
+          50: "#fef7ed",
+          100: "#fde8c4",
+          400: "#e8a042",
+          500: "#d4892e",
         },
         urgent: {
           50: "#fef2f2",
           500: "#ef4444",
           600: "#dc2626",
         },
+        cream: {
+          50: "#faf8f4",
+          100: "#f4f0e8",
+          200: "#e8e2d6",
+        },
       },
       fontFamily: {
-        sans: [
-          "Inter",
-          "ui-sans-serif",
-          "system-ui",
-          "-apple-system",
-          "sans-serif",
-        ],
+        sans: ["Outfit", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       animation: {
         "fade-up": "fadeUp 0.3s ease-out",
         "pulse-soft": "pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "slide-in": "slideIn 0.35s ease-out",
       },
       keyframes: {
         fadeUp: {
@@ -50,6 +51,10 @@ const config: Config = {
         pulseSoft: {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.6" },
+        },
+        slideIn: {
+          "0%": { opacity: "0", transform: "translateX(-6px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
         },
       },
     },
