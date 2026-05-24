@@ -48,21 +48,33 @@ export default function ChatPage() {
       dispatch({ type: "INCREMENT_TURN" });
 
       try {
+        // Build conversation history for live Claude (mock ignores it, uses turnNumber)
+        const conversationHistory = state.messages
+          .filter((m) => m.role === "user" || m.role === "assistant")
+          .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+        // Add the new user message
+        conversationHistory.push({ role: "user", content: userText });
+
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ turnNumber: state.turnNumber }),
+          body: JSON.stringify({
+            messages: conversationHistory,
+            profile: state.profile,
+            sessionId: state.sessionId,
+            turnNumber: state.turnNumber,
+          }),
         });
 
         const data = (await res.json()) as {
-          message: string;
+          response: string;
           profileUpdate: Partial<CareProfile>;
           pathway: Pathway | null;
-          triggerStage: string | null;
+          requiresEscalation: boolean;
         };
 
-        await new Promise((r) => setTimeout(r, 800));
-        addAssistantMessage(data.message, data.profileUpdate);
+        await new Promise((r) => setTimeout(r, 400));
+        addAssistantMessage(data.response, data.profileUpdate);
 
         if (data.pathway) {
           await new Promise((r) => setTimeout(r, 600));
@@ -79,6 +91,9 @@ export default function ChatPage() {
     [
       isStreaming,
       state.turnNumber,
+      state.messages,
+      state.profile,
+      state.sessionId,
       addUserMessage,
       addAssistantMessage,
       dispatch,

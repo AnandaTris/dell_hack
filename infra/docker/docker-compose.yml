@@ -29,43 +29,67 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # --- Phase 1+ services (uncomment when built) ---
-  # web:
-  #   build: ../../apps/web
-  #   ports: ["3000:3000"]
-  #   networks: [carekaki]
-  #   depends_on: [postgres]
-  #   env_file: ../../.env
+  profile-service:
+    build:
+      context: ../../services/profile-service
+      dockerfile: Dockerfile
+    container_name: carekaki-profile-service
+    ports:
+      - "3003:3003"
+    networks:
+      - carekaki
+    environment:
+      PORT: "3003"
+      NODE_ENV: production
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
 
-  # api-gateway:
-  #   build: ../../services/api-gateway
-  #   ports: ["3001:3001"]
-  #   networks: [carekaki]
-  #   env_file: ../../.env
+  agent-service:
+    build:
+      context: ../../services/agent-service
+      dockerfile: Dockerfile
+    container_name: carekaki-agent-service
+    ports:
+      - "3002:3002"
+    networks:
+      - carekaki
+    environment:
+      PORT: "3002"
+      NODE_ENV: production
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      MOCK_MODE: ${MOCK_MODE:-false}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-opus-4-7}
+      PROFILE_SERVICE_URL: http://profile-service:3003
+    depends_on:
+      profile-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
 
-  # agent-service:
-  #   build: ../../services/agent-service
-  #   ports: ["3002:3002"]
-  #   networks: [carekaki]
-  #   depends_on: [postgres]
-  #   env_file: ../../.env
-
-  # profile-service:
-  #   build: ../../services/profile-service
-  #   ports: ["3003:3003"]
-  #   networks: [carekaki]
-  #   depends_on: [postgres]
-  #   env_file: ../../.env
-
-  # knowledge-service:
-  #   build: ../../services/knowledge-service
-  #   ports: ["3004:3004"]
-  #   networks: [carekaki]
-  #   env_file: ../../.env
-
-  # handover-service:
-  #   build: ../../services/handover-service
-  #   ports: ["3005:3005"]
-  #   networks: [carekaki]
-  #   depends_on: [postgres]
-  #   env_file: ../../.env
+  web:
+    build:
+      context: ../../apps/web
+      dockerfile: Dockerfile
+    container_name: carekaki-web
+    ports:
+      - "3000:3000"
+    networks:
+      - carekaki
+    environment:
+      NODE_ENV: production
+      AGENT_SERVICE_URL: http://agent-service:3002
+      PROFILE_SERVICE_URL: http://profile-service:3003
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      MOCK_MODE: ${MOCK_MODE:-false}
+    depends_on:
+      agent-service:
+        condition: service_healthy
+    restart: unless-stopped
